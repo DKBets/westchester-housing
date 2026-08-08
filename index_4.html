@@ -1,0 +1,554 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Westchester Housing Finder — Vouchers &amp; Rooms</title>
+<meta name="theme-color" content="#0d1117">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Housing">
+<meta name="description" content="Live Westchester + Lower Fairfield housing: Section 8 vouchers, rooms under $1,200, apartments, and voucher apartments under $4,000.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%230d1117'/%3E%3Cpath d='M50 22 L78 44 V78 H60 V58 H40 V78 H22 V44 Z' fill='%235aa2ff'/%3E%3C/svg%3E">
+<link rel="apple-touch-icon" href="icon-192.png">
+<link rel="manifest" href="manifest.webmanifest">
+<style>
+  :root{
+    --bg:#0d1117; --surface:#161b22; --surface2:#1a212b; --border:#232c37;
+    --text:#e9eef4; --dim:#8b97a4; --faint:#5f6b77;
+    --accent:#5aa2ff; --green:#42c26a; --gray:#7a8793; --amber:#e0a53b;
+    --radius:14px;
+  }
+  *{box-sizing:border-box}
+  html{-webkit-text-size-adjust:100%}
+  body{margin:0;background:var(--bg);color:var(--text);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    line-height:1.55;padding:40px 20px;letter-spacing:.1px}
+  .wrap{max-width:860px;margin:0 auto}
+
+  .eyebrow{font-size:12px;font-weight:600;letter-spacing:1.4px;text-transform:uppercase;color:var(--accent);margin-bottom:10px}
+  h1{font-size:27px;line-height:1.2;margin:0 0 8px;font-weight:680}
+  .lede{color:var(--dim);font-size:14.5px;margin:0 0 22px;max-width:62ch}
+
+  .tabs{display:flex;gap:6px;background:var(--surface);border:1px solid var(--border);
+    border-radius:12px;padding:5px;margin-bottom:26px;position:sticky;top:12px;z-index:5;
+    backdrop-filter:blur(6px)}
+  .tab{flex:1;text-align:center;padding:10px 14px;border-radius:9px;font-size:13.5px;font-weight:600;
+    color:var(--dim);cursor:pointer;border:none;background:none;transition:all .15s;letter-spacing:.2px}
+  .tab:hover{color:var(--text)}
+  .tabstate{position:absolute;width:0;height:0;opacity:0;pointer-events:none}
+  .tab .c{color:var(--faint);font-weight:600;margin-left:5px}
+  .panel{display:none}
+  #t-vouchers:checked ~ #vouchers,
+  #t-rentals:checked ~ #rentals,
+  #t-apartments:checked ~ #apartments,
+  #t-voucherapts:checked ~ #voucherapts{display:block;animation:fade .2s ease}
+  #t-vouchers:checked ~ .tabs label[for="t-vouchers"],
+  #t-rentals:checked ~ .tabs label[for="t-rentals"],
+  #t-apartments:checked ~ .tabs label[for="t-apartments"],
+  #t-voucherapts:checked ~ .tabs label[for="t-voucherapts"]{background:var(--surface2);color:var(--text);box-shadow:inset 0 0 0 1px var(--border)}
+  #t-vouchers:checked ~ .tabs label[for="t-vouchers"] .c,
+  #t-rentals:checked ~ .tabs label[for="t-rentals"] .c,
+  #t-apartments:checked ~ .tabs label[for="t-apartments"] .c,
+  #t-voucherapts:checked ~ .tabs label[for="t-voucherapts"] .c{color:var(--accent)}
+  @keyframes fade{from{opacity:0;transform:translateY(3px)}to{opacity:1;transform:none}}
+
+  .stats{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:24px}
+  .stat{flex:1;min-width:110px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:14px 16px}
+  .stat .n{font-size:23px;font-weight:700;line-height:1}
+  .stat .n.g{color:var(--green)} .stat .n.c{color:var(--gray)}
+  .stat .l{font-size:12px;color:var(--dim);margin-top:6px}
+
+  section{margin-top:28px}
+  .sec-h h2{font-size:13px;font-weight:640;letter-spacing:.8px;text-transform:uppercase;color:var(--dim);margin:0 0 4px}
+  .sec-sub{color:var(--faint);font-size:12.5px;margin:0 0 14px}
+
+  .card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:18px 20px;margin-bottom:12px}
+  .card.flush{padding:6px 8px}
+  .card.hi{background:linear-gradient(180deg,#12241a,#131a17);border-color:rgba(66,194,106,.34)}
+  .ch{display:flex;justify-content:space-between;align-items:flex-start;gap:14px;flex-wrap:wrap}
+  .nm{font-weight:640;font-size:16px}
+  .loc{color:var(--dim);font-size:13px;margin-top:3px}
+  .cbody{font-size:13.5px;color:#cfd8e2;margin-top:12px}
+  .cbody b{color:#fff;font-weight:620}
+  .cbody .line{margin-top:7px}
+  a{color:var(--accent);text-decoration:none} a:hover{text-decoration:underline}
+
+  .pill{display:inline-flex;align-items:center;gap:6px;font-size:11px;font-weight:700;letter-spacing:.5px;
+    text-transform:uppercase;padding:4px 11px;border-radius:999px;white-space:nowrap}
+  .pill::before{content:"";width:6px;height:6px;border-radius:50%}
+  .p-open{background:rgba(66,194,106,.14);color:var(--green);border:1px solid rgba(66,194,106,.3)}
+  .p-open::before{background:var(--green)}
+  .verified{display:inline-flex;align-items:center;gap:7px;font-size:12px;color:var(--green);margin-top:12px}
+  .verified::before{content:"✓";font-weight:700}
+
+  .tbl{width:100%;border-collapse:collapse;font-size:13.5px}
+  .tbl th{text-align:left;padding:10px 12px;color:var(--faint);font-weight:600;font-size:11px;
+    text-transform:uppercase;letter-spacing:.6px;border-bottom:1px solid var(--border)}
+  .tbl td{padding:11px 12px;border-bottom:1px solid var(--border);vertical-align:top}
+  .tbl tr:last-child td{border-bottom:none}
+  .tbl td:first-child{font-weight:560}
+  .tbl tr.link-row:hover{background:rgba(90,162,255,.05)}
+  .area{color:var(--dim);white-space:nowrap}
+  .stt{color:var(--gray);font-size:12.5px}
+  .price{color:var(--green);font-weight:700;white-space:nowrap}
+  .srccell{color:var(--faint);white-space:nowrap;font-size:12.5px}
+  .addr-link{font-weight:600}
+  .addr-link::after{content:" ↗";color:var(--faint);font-size:11px}
+  .phone{color:#cfd8e2;white-space:nowrap;font-size:13px;font-weight:600}
+  .nophone{color:var(--faint)}
+  .numcell{color:var(--faint);font-weight:700;font-size:12px}
+  .email{color:var(--dim);font-size:10.5px;word-break:break-all;display:block;margin-top:4px;line-height:1.35}
+  .email .lbl{color:var(--faint);text-transform:uppercase;letter-spacing:.4px;font-size:9px;display:block}
+
+  .callout{display:flex;gap:12px;background:rgba(224,165,59,.08);border:1px solid rgba(224,165,59,.28);
+    border-radius:var(--radius);padding:14px 16px;font-size:13px;color:#f0dcb4;margin-bottom:16px}
+  .callout .ic{color:var(--amber);font-weight:800;font-size:15px;line-height:1.3}
+  .callout b{color:#fff}
+  .datenote{font-size:12px;color:var(--faint);font-style:italic;margin:10px 2px 0}
+
+  .btn{display:inline-block;margin-top:6px;margin-right:8px;background:rgba(90,162,255,.12);border:1px solid rgba(90,162,255,.34);
+    color:var(--accent);font-size:13px;font-weight:600;padding:9px 15px;border-radius:10px}
+  .btn:hover{text-decoration:none;background:rgba(90,162,255,.2)}
+  .chipwrap{margin-top:14px}
+  .chipwrap .grp{font-size:12px;color:var(--faint);text-transform:uppercase;letter-spacing:.5px;font-weight:600;margin:12px 0 6px}
+  .chips{line-height:2.1}
+  .chips a{display:inline-block;background:rgba(90,162,255,.08);border:1px solid rgba(90,162,255,.22);
+    border-radius:8px;padding:3px 10px;margin:0 5px 4px 0;font-size:12.5px}
+  .chips a:hover{text-decoration:none;background:rgba(90,162,255,.18)}
+
+  .src{font-size:13.5px;color:#cfd8e2}
+  .src .row{padding:11px 0;border-bottom:1px solid var(--border)}
+  .src .row:last-child{border-bottom:none;padding-bottom:2px}
+  .src .row:first-child{padding-top:2px}
+  .src b{color:#fff;font-weight:620}
+  .resource{font-size:13.5px;color:#cfd8e2}
+  .resource .line{margin:8px 0}
+  .resource b{color:#fff;font-weight:620}
+  .tag{display:inline-block;font-size:10.5px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;
+    padding:2px 8px;border-radius:6px;margin-left:6px;vertical-align:middle}
+  .tag.best{background:rgba(66,194,106,.14);color:var(--green);border:1px solid rgba(66,194,106,.3)}
+  .tag.ok{background:rgba(90,162,255,.12);color:var(--accent);border:1px solid rgba(90,162,255,.3)}
+
+  footer{margin-top:34px;color:var(--faint);font-size:12px;border-top:1px solid var(--border);padding-top:16px;line-height:1.6}
+  @media(max-width:560px){ body{padding:24px 14px} h1{font-size:22px}
+    .tabs{flex-wrap:wrap} .tab{flex:1 1 44%;padding:9px 8px;font-size:12.5px} }
+
+  /* --- tappable contact links --- */
+  a.tel,a.mail{color:inherit;text-decoration:none;border-bottom:1px dashed rgba(255,255,255,.22)}
+  a.tel:hover,a.mail:hover{color:var(--accent);border-bottom-color:var(--accent)}
+  .cbody a.tel,.src a.tel,.resource a.tel{color:var(--accent);border-bottom-color:rgba(90,162,255,.4)}
+
+  /* --- desktop table polish --- */
+  .tbl tr.link-row:nth-child(even),.tbl tr:nth-child(even):not(.hrow){background:rgba(255,255,255,.022)}
+  .tbl tr.link-row:hover,.tbl tr:hover:not(.hrow){background:rgba(90,162,255,.06)}
+  .email{overflow-wrap:anywhere;word-break:normal}
+
+  /* --- mobile: tables become cards --- */
+  @media(max-width:600px){
+    .card.flush{background:none;border:none;padding:0}
+    .tbl{display:block}
+    .tbl tr.hrow{display:none}
+    .tbl tr{display:flex;flex-direction:column;background:var(--surface);
+      border:1px solid var(--border);border-radius:12px;padding:13px 15px;margin-bottom:10px}
+    .tbl tr:nth-child(even):not(.hrow){background:var(--surface)}
+    .tbl td{border:none;padding:4px 0;text-align:left;font-size:14px;white-space:normal;order:4}
+    .tbl td::before{content:attr(data-label);display:block;color:var(--faint);font-weight:700;
+      text-transform:uppercase;font-size:9.5px;letter-spacing:.6px;margin-bottom:1px}
+    .tbl td[data-label=""]::before{display:none}
+    .tbl td.numcell{display:none}
+    .tbl td.titlecell{order:1;font-size:15.5px;font-weight:640;padding:0 0 10px;
+      margin-bottom:6px;border-bottom:1px solid var(--border)}
+    .tbl td.titlecell::before{display:none}
+    .tbl td.price{order:2;font-size:17px}
+    .tbl td.srccell{order:3;font-size:12.5px}
+    .tbl td.stt{order:4}
+    .tbl td.area{order:5}
+    .tbl td.phone,.tbl td.nophone{order:6;padding-top:9px;margin-top:5px;border-top:1px solid var(--border)}
+    .tbl td.phone .email{margin-top:6px}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="eyebrow">Westchester NY + Lower Fairfield CT · Rooms refreshed Aug 8 · Section 8 re-checked Aug 8, 2026</div>
+  <h1>Westchester Housing Finder</h1>
+
+  <input type="radio" name="tab" id="t-vouchers" class="tabstate" checked>
+  <input type="radio" name="tab" id="t-rentals" class="tabstate">
+  <input type="radio" name="tab" id="t-apartments" class="tabstate">
+  <input type="radio" name="tab" id="t-voucherapts" class="tabstate">
+  <div class="tabs">
+    <label class="tab" for="t-vouchers">Section 8 / Vouchers <span class="c">2 open</span></label>
+    <label class="tab" for="t-rentals">Rooms for Rent <span class="c">≤ $1,200</span></label>
+    <label class="tab" for="t-apartments">Apartments <span class="c">800+ sq ft</span></label>
+    <label class="tab" for="t-voucherapts">Voucher Apartments <span class="c">≤ $4,000</span></label>
+  </div>
+
+  <!-- ================= VOUCHERS ================= -->
+  <div id="vouchers" class="panel">
+
+    <div class="stats">
+      <div class="stat"><div class="n g">2</div><div class="l">Waitlists open (verified)</div></div>
+      <div class="stat"><div class="n c">14</div><div class="l">Confirmed closed</div></div>
+      <div class="stat"><div class="n">40</div><div class="l">Voucher listings (clickable)</div></div>
+    </div>
+
+    <section>
+      <div class="sec-h"><h2>Waitlists open now</h2></div>
+      <p class="sec-sub">Confirmed by opening the actual application today.</p>
+
+      <div class="card hi">
+        <div class="ch">
+          <div><div class="nm">NYC Project-Based Section 8</div><div class="loc">Bronx + all NYC boroughs · via NY State HCR “My Housing”</div></div>
+          <span class="pill p-open">Portal live</span>
+        </div>
+        <div class="cbody">
+          <div class="line">The Jul 13–24 Bronx window has since closed. The HCR “My Housing” portal is still live and is where every NY State opening posts — click <b>Start Here</b> to see what's currently accepting applications.</div>
+          <div class="line"><b>Recent Bronx listings (July):</b> Twin Parks North West / South East / South West (family, studio–5BR); senior 62+: 4519 WPR, Fort Schuyler House, Comunilife Tiebout, Kittay House — confirm current status in the portal.</div>
+          <div class="line"><b>Income cap (50% AMI):</b> 1 person $59,400 · 2 $67,850 · 3 $76,350 · 4 $84,800 · 5 $91,600.</div>
+          <div class="line"><b>Apply / check openings:</b> <a href="https://section8.hcr.ny.gov/">section8.hcr.ny.gov</a> → “Start Here.” Help line <a class="tel" href="tel:+18337912748">(833) 791-2748</a>.</div>
+        </div>
+        <div class="verified">Portal confirmed live Aug 8 — specific openings change; check at Start Here</div>
+      </div>
+
+      <div class="card hi">
+        <div class="ch">
+          <div><div class="nm">Charter Oak Communities — property waitlists</div><div class="loc">Stamford, CT · Fairfield County</div></div>
+          <span class="pill p-open">Open</span>
+        </div>
+        <div class="cbody">
+          <div class="line">The main tenant-based voucher list is closed, but several property waitlists are open now — most relevant is <b>Point Rock</b> (accepts Section 8 / RAP vouchers). Also open: Clinton Manor, Lawnhill Terrace, Park 215, Quintard Manor, Summer Place, and Glenluxe (below-market, 1-BR).</div>
+          <div class="line"><b>Apply:</b> <a href="https://charteroakcommunities.org/resident-living/how-to-apply/">charteroakcommunities.org → How to Apply</a> · office <a class="tel" href="tel:+12039771400">(203) 977-1400</a>.</div>
+        </div>
+        <div class="verified">Re-confirmed open Aug 8 on Charter Oak’s official “open waiting lists” page</div>
+      </div>
+    </section>
+
+    <section>
+      <div class="sec-h"><h2>Landlords that accept vouchers — 40 listings</h2></div>
+      <p class="sec-sub">Live Section 8-accepting rentals across Westchester + Peekskill (AffordableHousing.com, Jul 26), cheapest first. <b>Tap any address to open the actual listing</b> — photos, current price, and the landlord’s phone. Whole apartments; your voucher covers a share of the rent.</p>
+      <div class="card flush">
+        <table class="tbl">
+          <tr class="hrow"><th>Rent</th><th>Beds</th><th>Address — opens the listing</th><th>Town</th></tr>
+          <tr class="link-row"><td class="price" data-label="Rent">$1,800</td><td data-label="Beds">Studio</td><td class="titlecell"><a class="addr-link" href="https://www.affordablehousing.com/mount-vernon-ny/114-s-6th-ave-1037534/">114 S 6th Ave</a></td><td class="area" data-label="Town">Mount Vernon</td></tr>
+          <tr class="link-row"><td class="price" data-label="Rent">$1,912</td><td data-label="Beds">1 BR</td><td class="titlecell"><a class="addr-link" href="https://www.affordablehousing.com/peekskill-ny/peekskill-plaza-senior-apartments-1000644/">901 Main St — Peekskill Plaza (senior)</a></td><td class="area" data-label="Town">Peekskill</td></tr>
+          <tr class="link-row"><td class="price" data-label="Rent">$2,000</td><td data-label="Beds">1 BR</td><td class="titlecell"><a class="addr-link" href="https://www.affordablehousing.com/yonkers-ny/56-locust-hill-ave-596135/">56 Locust Hill Ave</a></td><td class="area" data-label="Town">Yonkers</td></tr>
+          <tr class="link-row"><td class="price" data-label="Rent">$2,200</td><td data-label="Beds">1 BR</td><td class="titlecell"><a class="addr-link" href="https://www.affordablehousing.com/new-rochelle-ny/30-allard-ave-191109/">30 Allard Ave</a></td><td class="area" data-label="Town">New Rochelle</td></tr>
+          <tr class="link-row"><td class="price" data-label="Rent">$2,300</td><td data-label="Beds">1 BR</td><td class="titlecell"><a class="addr-link" href="https://www.affordablehousing.com/mount-vernon-ny/217-s-10th-ave-1037531/">217 S 10th Ave</a></td><td class="area" data-label="Town">Mount Vernon</td></tr>
+          <tr class="link-row"><td class="price" data-label="Rent">$2,300</td><td data-label="Beds">1 BR</td><td class="titlecell"><a class="addr-link" href="https://www.affordablehousing.com/yonkers-ny/35-altonwood-pl-961123/">35 Altonwood Pl</a></td><td class="area" data-label="Town">Yonkers</td></tr>
+          <tr class="link-row"><td class="price" data-label="Rent">$2,400</td><td data-label="Beds">2 BR</td><td class="titlecell"><a class="addr-link" href="https://www.affordablehousing.com/yonkers-ny/110-school-st-572464/">110 School St</a></td><td class="area" data-label="Town">Yonkers</td></tr>
+          <tr class="link-row"><td class="price" data-label="Rent">$2,550</td><td data-label="Beds">2 BR</td><td class="titlecell"><a class="addr-link" href="https://www.affordablehousing.com/peekskill-ny/1230-park-st-782849/">1230 Park St</a></td><td class="area" data-label="Town">Peekskill</td></tr>
+          <tr class="link-row"><td class="price" data-label="Rent">$2,600</td><td data-label="Beds">1 BR</td><td class="titlecell"><a class="addr-link" href="https://www.affordablehousing.com/yonkers-ny/40-caryl-ave-1026864/">40 Caryl Ave</a></td><td class="area" data-label="Town">Yonkers</td></tr>
+          <tr class="link-row"><td class="price" data-label="Rent">$2,600</td><td data-label="Beds">1 BR</td><td class="titlecell"><a class="addr-link" href="https://www.affordablehousing.com/new-rochelle-ny/110-stonelea-pl-769078/">110 Stonelea Pl</a></td><td class="area" data-label="Town">New Rochelle</td></tr>
+          <tr class="link-row"><td class="price" data-label="Rent">$2,600</td><td data-label="Beds">2 BR</td><td class="titlecell"><a class="addr-link" href="https://www.affordablehousing.com/mount-vernon-ny/149-w-5th-st-1016166/">149 W 5th St</a></td><td class="area" data-label="Town">Mount Vernon</td></tr>
+          <tr class="link-row"><td class="price" data-label="Rent">$2,600</td><td data-label="Beds">—</td><td class="titlecell"><a class="addr-link" href="https://www.affordablehousing.com/new-rochelle-ny/88-horton-ave-836999/">88 Horton Ave</a></td><td class="area" data-label="Town">New Rochelle</td></tr>
+          <tr class="link-row"><td class="price" data-label="Rent">$3,000</td><td data-label="Beds">—</td><td class="titlecell"><a class="addr-link" href="https://www.affordablehousing.com/new-rochelle-ny/22-clove-rd-1026389/">22 Clove Rd</a></td><td class="area" data-label="Town">New Rochelle</td></tr>
+          <tr class="link-row"><td class="price" data-label="Rent">$3,200</td><td data-label="Beds">4 BR</td><td class="titlecell"><a class="addr-link" href="https://www.affordablehousing.com/yonkers-ny/52-william-st-961128/">52 William St</a></td><td class="area" data-label="Town">Yonkers</td></tr>
+          <tr class="link-row"><td class="price" data-label="Rent">$3,300</td><td data-label="Beds">3 BR</td><td class="titlecell"><a class="addr-link" href="https://www.affordablehousing.com/yonkers-ny/12-riverview-pl-1017659/">12 Riverview Pl</a></td><td class="area" data-label="Town">Yonkers</td></tr>
+          <tr class="link-row"><td class="price" data-label="Rent">$3,300</td><td data-label="Beds">3 BR</td><td class="titlecell"><a class="addr-link" href="https://www.affordablehousing.com/new-rochelle-ny/22-clove-rd-697464/">22 Clove Rd #3</a></td><td class="area" data-label="Town">New Rochelle</td></tr>
+          <tr class="link-row"><td class="price" data-label="Rent">$3,500</td><td data-label="Beds">3 BR</td><td class="titlecell"><a class="addr-link" href="https://www.affordablehousing.com/mount-vernon-ny/327-n-7th-ave-1023326/">327 N 7th Ave (townhouse)</a></td><td class="area" data-label="Town">Mount Vernon</td></tr>
+          <tr class="link-row"><td class="price" data-label="Rent">$3,500</td><td data-label="Beds">4 BR</td><td class="titlecell"><a class="addr-link" href="https://www.affordablehousing.com/yonkers-ny/67-van-cortlandt-pk-ave-998800/">67 Van Cortlandt Pk Ave</a></td><td class="area" data-label="Town">Yonkers</td></tr>
+        </table>
+      </div>
+
+      <div class="chipwrap">
+        <div class="grp">More clickable listings — Yonkers</div>
+        <div class="chips">
+          <a href="https://www.affordablehousing.com/yonkers-ny/64-hudson-st-1026480/">64 Hudson St</a>
+          <a href="https://www.affordablehousing.com/yonkers-ny/52-yonkers-ave-569039/">52 Yonkers Ave</a>
+          <a href="https://www.affordablehousing.com/yonkers-ny/154-morningside-pl-1003983/">154 Morningside Pl</a>
+          <a href="https://www.affordablehousing.com/yonkers-ny/133-morningside-pl-984349/">133 Morningside Pl</a>
+          <a href="https://www.affordablehousing.com/yonkers-ny/29-ravine-ave-1003971/">29 Ravine Ave</a>
+          <a href="https://www.affordablehousing.com/yonkers-ny/25-riverview-pl-1002703/">25 Riverview Pl</a>
+          <a href="https://www.affordablehousing.com/yonkers-ny/26-vineyard-ave-996596/">26 Vineyard Ave</a>
+          <a href="https://www.affordablehousing.com/yonkers-ny/44-vineyard-ave-996594/">44 Vineyard Ave</a>
+          <a href="https://www.affordablehousing.com/yonkers-ny/28-vineyard-ave-985802/">28 Vineyard Ave</a>
+          <a href="https://www.affordablehousing.com/yonkers-ny/224-sommerville-pl-996277/">224 Sommerville Pl</a>
+          <a href="https://www.affordablehousing.com/yonkers-ny/286-hawthorne-ave-987409/">286 Hawthorne Ave</a>
+          <a href="https://www.affordablehousing.com/yonkers-ny/47-caroline-ave-573355/">47 Caroline Ave</a>
+          <a href="https://www.affordablehousing.com/yonkers-ny/148-linden-st-545177/">148 Linden St</a>
+          <a href="https://www.affordablehousing.com/yonkers-ny/52-poplar-st-939384/">52 Poplar St</a>
+        </div>
+        <div class="grp">More clickable listings — Mount Vernon</div>
+        <div class="chips">
+          <a href="https://www.affordablehousing.com/mount-vernon-ny/352-s-10th-ave-1016164/">352 S 10th Ave</a>
+          <a href="https://www.affordablehousing.com/mount-vernon-ny/33-union-ln-986361/">33 Union Ln #3</a>
+          <a href="https://www.affordablehousing.com/mount-vernon-ny/2-amsterdam-pl-1016162/">2 Amsterdam Pl</a>
+          <a href="https://www.affordablehousing.com/mount-vernon-ny/51-s-high-st-967393/">51 S High St</a>
+          <a href="https://www.affordablehousing.com/mount-vernon-ny/630-s-4th-ave-967387/">630 S 4th Ave</a>
+          <a href="https://www.affordablehousing.com/mount-vernon-ny/10-n-bond-st-1025955/">10 N Bond St</a>
+          <a href="https://www.affordablehousing.com/mount-vernon-ny/114-s-6th-ave-967394/">114 S 6th Ave (3BR)</a>
+        </div>
+        <div class="grp">More clickable listings — New Rochelle</div>
+        <div class="chips">
+          <a href="https://www.affordablehousing.com/new-rochelle-ny/leo-and-laura-llc-1034320/">Leo &amp; Laura LLC</a>
+        </div>
+      </div>
+
+      <div class="card" style="margin-top:16px">
+        <div class="src">
+          <div class="row"><b>Browse every voucher listing by town</b><br><a href="https://www.affordablehousing.com/westchester-county-ny/">All Westchester County (746)</a> · <a href="https://www.affordablehousing.com/yonkers-ny/">Yonkers (665)</a> · <a href="https://www.affordablehousing.com/mount-vernon-ny/">Mount Vernon (64)</a> · <a href="https://www.affordablehousing.com/new-rochelle-ny/">New Rochelle (11)</a> · <a href="https://www.affordablehousing.com/peekskill-ny/">Peekskill (2)</a> · <a href="https://www.affordablehousing.com/white-plains-ny/">White Plains (2)</a> · <a href="https://www.affordablehousing.com/port-chester-ny/">Port Chester (0 now)</a>. This is a Section 8 marketplace (formerly GoSection8) — listings carry the blue “8 = accepts Section 8” badge, so these are voucher-accepting landlords. A few hide the phone until you make a free renter account.</div>
+          <div class="row"><b>Yonkers — MHACY landlord network</b><br>The Yonkers housing authority works with ~800 private landlords who take vouchers and can help connect you: <a class="tel" href="tel:+19147938400">(914) 793-8400</a>. <a href="https://www.mhacy.org/section-8-participants">mhacy.org/section-8-participants</a></div>
+          <div class="row"><b>Westchester HomeSeeker</b><br>County affordable-rental listings. <a href="https://homeseeker.westchestergov.com/Listings">homeseeker.westchestergov.com</a></div>
+          <div class="row"><b>Your voucher right, in New York</b><br>It is illegal for a NY landlord to refuse you solely because you use a Section 8 voucher — any listed rental you can afford with your voucher is fair game, not just ones tagged “Section 8.”</div>
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <div class="sec-h"><h2>Confirmed closed</h2></div>
+      <p class="sec-sub">Each checked at the authority’s own site or an official statewide list.</p>
+      <div class="card flush">
+        <table class="tbl">
+          <tr class="hrow"><th>Authority</th><th>Area</th><th>Status &amp; source</th></tr>
+          <tr><td class="titlecell">Village of Nyack HA</td><td class="area" data-label="Area">Rockland</td><td class="stt" data-label="Status">Closed since Feb 28, 2021 — VONHA application page</td></tr>
+          <tr><td class="titlecell">Rockland County DSS (HCV &amp; Mainstream)</td><td class="area" data-label="Area">Rockland</td><td class="stt" data-label="Status">Closed, “last opened 2018” — county site</td></tr>
+          <tr><td class="titlecell">Putnam County (HUD HCV)</td><td class="area" data-label="Area">Putnam</td><td class="stt" data-label="Status">Closed — Putnam Housing site</td></tr>
+          <tr><td class="titlecell">NYCHA (tenant-based Section 8)</td><td class="area" data-label="Area">Bronx / NYC</td><td class="stt" data-label="Status">Closed since Feb 2025; issuance paused Aug 2025</td></tr>
+          <tr><td class="titlecell">Westchester County program (CVR)</td><td class="area" data-label="Area">Westchester</td><td class="stt" data-label="Status">Closed — applies via HCR; only NYC list open there</td></tr>
+          <tr><td class="titlecell">White Plains Housing Authority</td><td class="area" data-label="Area">Westchester</td><td class="stt" data-label="Status">Closed — “no open waiting lists” on its portal</td></tr>
+          <tr><td class="titlecell">Greenburgh Housing Authority</td><td class="area" data-label="Area">Westchester</td><td class="stt" data-label="Status">Closed until further notice — own site</td></tr>
+          <tr><td class="titlecell">Town of Mamaroneck HA</td><td class="area" data-label="Area">Westchester</td><td class="stt" data-label="Status">Closed — “no open waiting lists” on its portal</td></tr>
+          <tr><td class="titlecell">Mount Vernon (NY)</td><td class="area" data-label="Area">Westchester</td><td class="stt" data-label="Status">Closed — no current Mount Vernon, NY list</td></tr>
+          <tr><td class="titlecell">Charter Oak — tenant-based HCV</td><td class="area" data-label="Area">Stamford, CT</td><td class="stt" data-label="Status">Closed (property lists open — see above)</td></tr>
+          <tr><td class="titlecell">Norwalk Housing Authority</td><td class="area" data-label="Area">Norwalk, CT</td><td class="stt" data-label="Status">Closed — “all waiting lists closed” on its site</td></tr>
+          <tr><td class="titlecell">Park City Communities</td><td class="area" data-label="Area">Bridgeport, CT</td><td class="stt" data-label="Status">Closed — “waitlist is currently closed”</td></tr>
+          <tr><td class="titlecell">Housing Authority of Danbury</td><td class="area" data-label="Area">Danbury, CT</td><td class="stt" data-label="Status">Closed — not on CT’s official open-list site</td></tr>
+          <tr><td class="titlecell">Greenwich Communities</td><td class="area" data-label="Area">Greenwich, CT</td><td class="stt" data-label="Status">Closed — not on CT’s official open-list site</td></tr>
+        </table>
+      </div>
+    </section>
+
+    <section>
+      <div class="sec-h"><h2>Register now, be ready when a region opens</h2></div>
+      <div class="card">
+        <div class="resource">
+          <div class="line"><b>NY State HCR “My Housing”</b> — where NY openings post, including the Bronx list above: <a href="https://section8.hcr.ny.gov/">section8.hcr.ny.gov</a></div>
+          <div class="line"><b>Connecticut cthcvp.org</b> — statewide alerts; only Middletown (outside your area) is open now, closing Jul 27: <a href="https://www.cthcvp.org/">cthcvp.org</a></div>
+          <div class="line"><b>Rockland County DSS</b> — historically the most active local opener: <a href="https://www.rocklandcountyny.gov/departments/social-services/section-8-housing-choice-voucher-hcv">watch page</a></div>
+          <div class="line"><b>Beyond vouchers</b> — Village of Nyack HA also lists Pine Street Homes (ADA/mobility) and Waldron Terrace &amp; Depew Manor (NYS public housing): <a href="https://www.villageofnyackhousingauthority.com/applications">VONHA applications</a></div>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <!-- ================= RENTALS ================= -->
+  <div id="rentals" class="panel">
+
+    <section style="margin-top:0">
+      <div class="sec-h"><h2>Rooms for rent — $1,200 or less</h2></div>
+      <p class="sec-sub">Live Craigslist rooms, <b>newest first</b> — refreshed Aug 8 (“new” = just appeared). <b>Tap any room to open the posting.</b> Contacts we already pulled are kept.</p>
+
+      <div class="callout">
+        <div class="ic">!</div>
+        <div><b>Scam check:</b> room posts priced far below market ($150–$300 for a “room”) are almost always fake — I left those out. Never send a deposit, fee, or wire before seeing the room in person and meeting the landlord.</div>
+      </div>
+
+      <div class="card flush">
+        <table class="tbl">
+          <tr class="hrow"><th>#</th><th>Posted</th><th>Rent</th><th>Room — opens the posting</th><th>Area</th><th>Contact</th></tr>
+          <tr class="link-row"><td class="numcell" data-label="">1</td><td class="srccell" data-label="Posted"><span style="color:var(--green);font-weight:700">Aug 7 · new</span></td><td class="price" data-label="Rent">$800</td><td class="titlecell"><a class="addr-link" href="https://www.craigslist.org/view/d/white-plains-large-bedroom-on-second/riazsKkhPdQa9SZ5CNnysY">Large bedroom, 2nd floor, available ASAP</a></td><td class="area" data-label="Area">White Plains</td><td class="nophone" data-label="Contact">—</td></tr>
+          <tr class="link-row"><td class="numcell" data-label="">2</td><td class="srccell" data-label="Posted"><span style="color:var(--green);font-weight:700">Aug 7 · new</span></td><td class="price" data-label="Rent">$850</td><td class="titlecell"><a class="addr-link" href="https://www.craigslist.org/view/d/port-chester-large-room-is-available/xrNnEexmrdustKAhe4w3oA">Large room available</a></td><td class="area" data-label="Area">Port Chester</td><td class="phone" data-label="Contact"><a class="tel" href="tel:+19145652982">(914) 565-2982</a></td></tr>
+          <tr class="link-row"><td class="numcell" data-label="">3</td><td class="srccell" data-label="Posted"><span style="color:var(--green);font-weight:700">Aug 4 · new</span></td><td class="price" data-label="Rent">$1,000</td><td class="titlecell"><a class="addr-link" href="https://www.craigslist.org/view/d/mount-vernon-unfurnished-room-for-rent/oTXRe9HZagj8rXDgaenvXN">Unfurnished room for rent</a></td><td class="area" data-label="Area">Mount Vernon</td><td class="nophone" data-label="Contact">—</td></tr>
+          <tr class="link-row"><td class="numcell" data-label="">4</td><td class="srccell" data-label="Posted"><span style="color:var(--green);font-weight:700">Aug 3 · new</span></td><td class="price" data-label="Rent">$700</td><td class="titlecell"><a class="addr-link" href="https://www.craigslist.org/view/d/yonkers-room-for-rent/uatjTaeGL23xwuaMDbjkn6">Room for rent</a></td><td class="area" data-label="Area">Yonkers</td><td class="nophone" data-label="Contact">—</td></tr>
+          <tr class="link-row"><td class="numcell" data-label="">5</td><td class="srccell" data-label="Posted"><span style="color:var(--green);font-weight:700">Aug 3 · new</span></td><td class="price" data-label="Rent">$900</td><td class="titlecell"><a class="addr-link" href="https://www.craigslist.org/view/d/white-plains-amazing-room-for-rent-in/41W3pm2Z3hREysiKFuK4cs">Amazing room, downtown White Plains</a></td><td class="area" data-label="Area">White Plains</td><td class="nophone" data-label="Contact">—</td></tr>
+          <tr class="link-row"><td class="numcell" data-label="">6</td><td class="srccell" data-label="Posted"><span style="color:var(--green);font-weight:700">Aug 2 · new</span></td><td class="price" data-label="Rent">$900</td><td class="titlecell"><a class="addr-link" href="https://www.craigslist.org/view/d/maryknoll-room-for-rent/jHop8tZQG6mYDG1kThanqK">Room for rent</a></td><td class="area" data-label="Area">Ossining</td><td class="phone" data-label="Contact"><a class="tel" href="tel:+19149238087">(914) 923-8087</a></td></tr>
+          <tr class="link-row"><td class="numcell" data-label="">7</td><td class="srccell" data-label="Posted"><span style="color:var(--green);font-weight:700">Aug 2 · new</span></td><td class="price" data-label="Rent">$1,200</td><td class="titlecell"><a class="addr-link" href="https://www.craigslist.org/view/d/white-plains-room-for-rent/4tbwCobRrgZe24LSAwW7kf">Room for rent</a></td><td class="area" data-label="Area">White Plains</td><td class="phone" data-label="Contact"><a class="tel" href="tel:+19144375373">(914) 437-5373</a></td></tr>
+          <tr class="link-row"><td class="numcell" data-label="">8</td><td class="srccell" data-label="Posted">Jul 31</td><td class="price" data-label="Rent">$900</td><td class="titlecell"><a class="addr-link" href="https://www.craigslist.org/view/d/white-plains-awesome-private-room-for/u6Q68S8XvNZM616Sy8fpT3">Awesome private room (young professional)</a></td><td class="area" data-label="Area">White Plains</td><td class="nophone" data-label="Contact">—</td></tr>
+          <tr class="link-row"><td class="numcell" data-label="">9</td><td class="srccell" data-label="Posted">Jul 29</td><td class="price" data-label="Rent">$995</td><td class="titlecell"><a class="addr-link" href="https://www.craigslist.org/view/d/new-rochelle-995-1br-sq-fully-furnished/pLxYYRb8P9x6SF1mwKpV7t">Furnished room, utilities incl. (140 ft²)</a></td><td class="area" data-label="Area">New Rochelle</td><td class="nophone" data-label="Contact">—</td></tr>
+          <tr class="link-row"><td class="numcell" data-label="">10</td><td class="srccell" data-label="Posted">Jul 29</td><td class="price" data-label="Rent">$925</td><td class="titlecell"><a class="addr-link" href="https://www.craigslist.org/view/d/tarrytown-room-for-rent-in-tarrytown/63U9tCkzvkgHradDZnCLKu">Room for rent</a></td><td class="area" data-label="Area">Tarrytown</td><td class="phone email" data-label="Contact"><span class="lbl">reply email</span><a class="mail" href="mailto:5b24cb6b3337315683e4601f1f27aec8@hous.craigslist.org">5b24cb6b3337315683e4601f1f27aec8@hous.craigslist.org</a></td></tr>
+          <tr class="link-row"><td class="numcell" data-label="">11</td><td class="srccell" data-label="Posted">Jul 28</td><td class="price" data-label="Rent">$1,200</td><td class="titlecell"><a class="addr-link" href="https://www.craigslist.org/view/d/maryknoll-rooms-available-for-rent/uaFi2fdPCexZBYxytDMbyT">3 rooms available</a></td><td class="area" data-label="Area">Ossining</td><td class="nophone" data-label="Contact">—</td></tr>
+          <tr class="link-row"><td class="numcell" data-label="">12</td><td class="srccell" data-label="Posted">Jul 28</td><td class="price" data-label="Rent">$950</td><td class="titlecell"><a class="addr-link" href="https://www.craigslist.org/view/d/white-plains-student-housing-available/7PzCg3gmGebj9BLHTH8CSv">Student housing available</a></td><td class="area" data-label="Area">White Plains</td><td class="nophone" data-label="Contact">—</td></tr>
+          <tr class="link-row"><td class="numcell" data-label="">13</td><td class="srccell" data-label="Posted">Jul 28</td><td class="price" data-label="Rent">$1,200</td><td class="titlecell"><a class="addr-link" href="https://www.craigslist.org/view/d/mount-vernon-furnished-bedroom-quiet/qPsmnS41cRZAVqR6gRqXvo">Furnished bedroom, quiet private home (100 ft²)</a></td><td class="area" data-label="Area">Pelham Manor border</td><td class="phone" data-label="Contact"><a class="tel" href="tel:+17185302154">(718) 530-2154</a></td></tr>
+          <tr class="link-row"><td class="numcell" data-label="">14</td><td class="srccell" data-label="Posted">Jul 28</td><td class="price" data-label="Rent">$950</td><td class="titlecell"><a class="addr-link" href="https://www.craigslist.org/view/d/mount-vernon-attractive-furnished/c9fsmn2Uvxvkv5EM9Rw93e">Furnished room — utilities, WiFi, W/D</a></td><td class="area" data-label="Area">Mount Vernon</td><td class="phone" data-label="Contact"><a class="tel" href="tel:+12129511514">(212) 951-1514</a><span class="email"><span class="lbl">reply email</span><a class="mail" href="mailto:027164dd55343568abd4511b6f4b635e@hous.craigslist.org">027164dd55343568abd4511b6f4b635e@hous.craigslist.org</a></span></td></tr>
+          <tr class="link-row"><td class="numcell" data-label="">15</td><td class="srccell" data-label="Posted">Jul 27</td><td class="price" data-label="Rent">$900</td><td class="titlecell"><a class="addr-link" href="https://www.craigslist.org/view/d/mount-vernon-bright-comfortable-room/59pbUqc1Qhm8S9weV2z7FV">Bright & comfortable room, utilities incl.</a></td><td class="area" data-label="Area">Mount Vernon</td><td class="nophone" data-label="Contact">—</td></tr>
+          <tr class="link-row"><td class="numcell" data-label="">16</td><td class="srccell" data-label="Posted">Jul 27</td><td class="price" data-label="Rent">$850</td><td class="titlecell"><a class="addr-link" href="https://www.craigslist.org/view/d/yonkers-new-renovated-room-for-rent/m9cLFByz7xzRxQj5fAdCET">Newly renovated room</a></td><td class="area" data-label="Area">Yonkers</td><td class="nophone" data-label="Contact">—</td></tr>
+          <tr class="link-row"><td class="numcell" data-label="">17</td><td class="srccell" data-label="Posted">Jul 27</td><td class="price" data-label="Rent">$1,100</td><td class="titlecell"><a class="addr-link" href="https://www.craigslist.org/view/d/mount-vernon-quiet-peaceful-first-floor/if31Gezz2AfVdx5mUXmDEv">Quiet, peaceful first-floor room, utilities incl.</a></td><td class="area" data-label="Area">New Rochelle</td><td class="nophone" data-label="Contact">—</td></tr>
+          <tr class="link-row"><td class="numcell" data-label="">18</td><td class="srccell" data-label="Posted">Jul 26</td><td class="price" data-label="Rent">$750</td><td class="titlecell"><a class="addr-link" href="https://www.craigslist.org/view/d/yonkers-cozy-small-room-available-for/4wsPQgjmtvHvvtTM54c1ju">Cozy small room</a></td><td class="area" data-label="Area">Yonkers</td><td class="phone" data-label="Contact"><a class="tel" href="tel:+16463630622">(646) 363-0622</a><span class="email"><span class="lbl">reply email</span><a class="mail" href="mailto:9261498815df3da4bc6c049c425e2eac@hous.craigslist.org">9261498815df3da4bc6c049c425e2eac@hous.craigslist.org</a></span></td></tr>
+          <tr class="link-row"><td class="numcell" data-label="">19</td><td class="srccell" data-label="Posted">Jul 24</td><td class="price" data-label="Rent">$950</td><td class="titlecell"><a class="addr-link" href="https://www.craigslist.org/view/d/new-rochelle-room-for-rent-se-renta/76fLjQZLwR3d8KevU8urLj">Room for rent / Se renta cuarto</a></td><td class="area" data-label="Area">New Rochelle</td><td class="phone" data-label="Contact"><a class="tel" href="tel:+19144269554">(914) 426-9554</a><span class="email"><span class="lbl">reply email</span><a class="mail" href="mailto:474629ee80f3339385c56cb8c7d043cf@hous.craigslist.org">474629ee80f3339385c56cb8c7d043cf@hous.craigslist.org</a></span></td></tr>
+          <tr class="link-row"><td class="numcell" data-label="">20</td><td class="srccell" data-label="Posted">Jul 23</td><td class="price" data-label="Rent">$1,200</td><td class="titlecell"><a class="addr-link" href="https://www.craigslist.org/view/d/yonkers-looking-for-employed-e-a-e/mJzFre8WihthcWTx3JzETM">Employed female roommate, private room (144 ft²)</a></td><td class="area" data-label="Area">Yonkers</td><td class="nophone" data-label="Contact">—</td></tr>
+          <tr class="link-row"><td class="numcell" data-label="">21</td><td class="srccell" data-label="Posted">Jul 23</td><td class="price" data-label="Rent">$850</td><td class="titlecell"><a class="addr-link" href="https://www.craigslist.org/view/d/mount-vernon-habitacin-en-renta/tyvwZF6Qi4J1hY75nhWXgc">Habitación en renta</a></td><td class="area" data-label="Area">Mount Vernon</td><td class="phone email" data-label="Contact"><span class="lbl">reply email</span><a class="mail" href="mailto:14820fbc219f3079a027101fb9795091@hous.craigslist.org">14820fbc219f3079a027101fb9795091@hous.craigslist.org</a></td></tr>
+          <tr class="link-row"><td class="numcell" data-label="">22</td><td class="srccell" data-label="Posted">Jul 23</td><td class="price" data-label="Rent">$775</td><td class="titlecell"><a class="addr-link" href="https://www.craigslist.org/view/d/new-rochelle-furnished-room-for-rent/qP3XCfXqY8Mn9gPSscnGqa">Furnished room, $775/mo</a></td><td class="area" data-label="Area">New Rochelle</td><td class="phone" data-label="Contact"><a class="tel" href="tel:+19143104457">(914) 310-4457</a></td></tr>
+          <tr class="link-row"><td class="numcell" data-label="">23</td><td class="srccell" data-label="Posted">Jul 23</td><td class="price" data-label="Rent">$850</td><td class="titlecell"><a class="addr-link" href="https://www.craigslist.org/view/d/yonkers-furnished-room-to-share-in/73fjFc8dfuEugPWwKSwvpu">Furnished room to share</a></td><td class="area" data-label="Area">Yonkers</td><td class="phone email" data-label="Contact"><span class="lbl">reply email</span><a class="mail" href="mailto:d5aa653f202f39dbad672fff12ea5b91@hous.craigslist.org">d5aa653f202f39dbad672fff12ea5b91@hous.craigslist.org</a></td></tr>
+          <tr class="link-row"><td class="numcell" data-label="">24</td><td class="srccell" data-label="Posted">Jul 23</td><td class="price" data-label="Rent">$1,000</td><td class="titlecell"><a class="addr-link" href="https://www.craigslist.org/view/d/mount-vernon-nice-rooms-available/5NimkMLxpAFFgnaXqEvG8o">Nice rooms available</a></td><td class="area" data-label="Area">Mount Vernon</td><td class="phone" data-label="Contact"><a class="tel" href="tel:+19144385855">(914) 438-5855</a><span class="email"><span class="lbl">reply email</span><a class="mail" href="mailto:7b602cfc5f4235c7bccfb7bc2e492af9@hous.craigslist.org">7b602cfc5f4235c7bccfb7bc2e492af9@hous.craigslist.org</a></span></td></tr>
+          <tr class="link-row"><td class="numcell" data-label="">25</td><td class="srccell" data-label="Posted">Jul 21</td><td class="price" data-label="Rent">$1,100</td><td class="titlecell"><a class="addr-link" href="https://www.craigslist.org/view/d/elmsford-bedroom-for-rent/8VRVSsgx2TqbK4p5o4yGJE">Bedroom for rent</a></td><td class="area" data-label="Area">Elmsford</td><td class="phone email" data-label="Contact"><span class="lbl">reply email</span><a class="mail" href="mailto:ca58e196a7c23f34aefdeda1b606a724@hous.craigslist.org">ca58e196a7c23f34aefdeda1b606a724@hous.craigslist.org</a></td></tr>
+          <tr class="link-row"><td class="numcell" data-label="">26</td><td class="srccell" data-label="Posted">Jul 20</td><td class="price" data-label="Rent">$750</td><td class="titlecell"><a class="addr-link" href="https://www.craigslist.org/view/d/new-rochelle-beautiful-room-for-rent/qUeJ7ZBB1jqahi5Yk2xQm6">Beautiful room for rent</a></td><td class="area" data-label="Area">New Rochelle</td><td class="phone" data-label="Contact"><a class="tel" href="tel:+17187179730">(718) 717-9730</a></td></tr>
+          <tr class="link-row"><td class="numcell" data-label="">27</td><td class="srccell" data-label="Posted">Jul 18</td><td class="price" data-label="Rent">$900</td><td class="titlecell"><a class="addr-link" href="https://www.craigslist.org/view/d/maryknoll-room-for-rent/3URJxYVbsfQJLKoNYbP9Xu">Room for rent</a></td><td class="area" data-label="Area">Ossining</td><td class="phone" data-label="Contact"><a class="tel" href="tel:+19149238087">(914) 923-8087</a></td></tr>
+          <tr class="link-row"><td class="numcell" data-label="">28</td><td class="srccell" data-label="Posted">Jul 17</td><td class="price" data-label="Rent">$1,200</td><td class="titlecell"><a class="addr-link" href="https://www.craigslist.org/view/d/yonkers-yonkers-furnished-room-for-rent/tbjStN8iVaGEbFLEdxTijG">Furnished room (female only)</a></td><td class="area" data-label="Area">Yonkers</td><td class="nophone" data-label="Contact">—</td></tr>
+          <tr class="link-row"><td class="numcell" data-label="">29</td><td class="srccell" data-label="Posted">Jul 16</td><td class="price" data-label="Rent">$900</td><td class="titlecell"><a class="addr-link" href="https://www.craigslist.org/view/d/white-plains-room-for-rent-in-north/6YZupA6sPfnAge4jJYURAr">Room in North White Plains</a></td><td class="area" data-label="Area">White Plains</td><td class="phone" data-label="Contact"><a class="tel" href="tel:+19144909132">(914) 490-9132</a></td></tr>
+          <tr class="link-row"><td class="numcell" data-label="">30</td><td class="srccell" data-label="Posted">Jul 16</td><td class="price" data-label="Rent">$995</td><td class="titlecell"><a class="addr-link" href="https://www.craigslist.org/view/d/yonkers-large-bedroom-in-private-home/iZWgw4oayhPK2uTHUAYcMj">Large bedroom, all utilities incl.</a></td><td class="area" data-label="Area">North Yonkers</td><td class="phone" data-label="Contact"><a class="tel" href="tel:+19143043444">(914) 304-3444</a></td></tr>
+          <tr class="link-row"><td class="numcell" data-label="">31</td><td class="srccell" data-label="Posted">Jul 15</td><td class="price" data-label="Rent">$1,200</td><td class="titlecell"><a class="addr-link" href="https://www.craigslist.org/view/d/white-plains-habitacion-grande-para-una/xeB4EEk6MxMcwWqUCWk9gU">Habitación grande para una persona</a></td><td class="area" data-label="Area">White Plains</td><td class="nophone" data-label="Contact">—</td></tr>
+          <tr class="link-row"><td class="numcell" data-label="">32</td><td class="srccell" data-label="Posted">Jul 15</td><td class="price" data-label="Rent">$800</td><td class="titlecell"><a class="addr-link" href="https://www.craigslist.org/view/d/peekskill-furnished-private-room-with/vjcvA66mwA5DvGDK1v468B">Furnished room + private bath (Mon–Fri)</a></td><td class="area" data-label="Area">Peekskill</td><td class="phone email" data-label="Contact"><span class="lbl">reply email</span><a class="mail" href="mailto:fcaf0948856f30c7937c0ec71ef1aeab@hous.craigslist.org">fcaf0948856f30c7937c0ec71ef1aeab@hous.craigslist.org</a><span class="lbl" style="display:block;margin-top:4px">put "Nirvana" in subject line</span></td></tr>
+          <tr class="link-row"><td class="numcell" data-label="">33</td><td class="srccell" data-label="Posted">Jul 13</td><td class="price" data-label="Rent">$1,100</td><td class="titlecell"><a class="addr-link" href="https://www.craigslist.org/view/d/maryknoll-furnished-clean-and-cozy-room/4LuWMN6xsunFo2VMNvk6CD">Furnished clean & cozy room</a></td><td class="area" data-label="Area">Ossining</td><td class="nophone" data-label="Contact">—</td></tr>
+          <tr class="link-row"><td class="numcell" data-label="">34</td><td class="srccell" data-label="Posted">Jul 12</td><td class="price" data-label="Rent">$700</td><td class="titlecell"><a class="addr-link" href="https://www.craigslist.org/view/d/mount-vernon-furnished-bedroom-for/297pGTiCPsLAWmUHbrEvje">Furnished 1-BR for college student</a></td><td class="area" data-label="Area">Mount Vernon</td><td class="nophone" data-label="Contact">—</td></tr>
+        </table>
+      </div>
+      <a class="btn" href="https://newyork.craigslist.org/search/wch/roo?max_price=1200&sort=date">All ~40 on Craigslist →</a>
+      <a class="btn" href="https://www.roomies.com/rooms/yonkers-westchester-county-ny">Rooms on Roomies →</a>
+    </section>
+
+    <section>
+      <div class="sec-h"><h2>Where the rooms are — what each site is worth</h2></div>
+      <div class="card">
+        <div class="src">
+          <div class="row"><b>Craigslist</b><span class="tag best">Best</span><br>~40 rooms under $1,200 right now across Yonkers, White Plains, Mount Vernon, New Rochelle. <a href="https://newyork.craigslist.org/search/wch/roo?max_price=1200">Search →</a></div>
+          <div class="row"><b>Roomies.com</b><span class="tag ok">Good — use “Rooms only”</span><br>Real rooms in budget once you switch to the rooms-only view (e.g. $925 house room and $1,200 Bennett Ave rooms in Yonkers). The default view mixes in people <i>seeking</i> rooms — this link skips that. <a href="https://www.roomies.com/rooms/yonkers-westchester-county-ny">Rooms for rent in Yonkers →</a></div>
+          <div class="row"><b>Facebook Marketplace</b><span class="tag ok">Good — needs your login</span><br>Lots of rooms, but requires your Facebook login (I can’t do that for you). On your device: Marketplace → Property Rentals → set Mount Vernon/Yonkers, max $1,200. Groups “Westchester Rooms for Rent” and “Yonkers Apartments/Rooms for Rent” are active too.</div>
+        </div>
+      </div>
+      <p class="sec-sub" style="margin-top:12px">Best towns for sub-$1,200 rooms: Mount Vernon, Yonkers, White Plains, Peekskill, Port Chester, New Rochelle.</p>
+    </section>
+
+    <section>
+      <div class="sec-h"><h2>Renting with a voucher?</h2></div>
+      <div class="card">
+        <div class="cbody" style="margin-top:0">40 clickable listings from landlords who accept Section 8 vouchers are on the <b>Section 8 / Vouchers</b> tab.</div>
+      </div>
+    </section>
+  </div>
+
+  <!-- ================= APARTMENTS ================= -->
+  <div id="apartments" class="panel">
+
+    <div class="stats">
+      <div class="stat"><div class="n g">21</div><div class="l">Verified units (800+ sf, &lt;$4k)</div></div>
+      <div class="stat"><div class="n">8</div><div class="l">More elevator buildings</div></div>
+      <div class="stat"><div class="n">6</div><div class="l">Cities covered</div></div>
+    </div>
+
+
+    <section>
+      <div class="sec-h"><h2>Confirmed units — elevator · 800+ sq ft · under $4,000</h2></div>
+      <p class="sec-sub">Actual floor plans pulled Jul 27, cheapest first. Each links to the building/listing.</p>
+      <div class="card flush">
+        <table class="tbl">
+          <tr class="hrow"><th>Rent</th><th>Unit</th><th>Building — opens listing</th><th>Area</th></tr>
+          <tr class="link-row"><td class="price" data-label="Rent">$2,600</td><td data-label="Size">1 BR · 800 sf</td><td class="titlecell"><a class="addr-link" href="https://www.craigslist.org/view/d/white-plains-small-pet/hVTWR7PSmw9642rq4bbsBZ">Spacious 1BR, pet OK (Craigslist)</a></td><td class="area" data-label="Area">White Plains</td></tr>
+          <tr class="link-row"><td class="price" data-label="Rent">$3,195</td><td data-label="Size">1 BR · 878 sf</td><td class="titlecell"><a class="addr-link" href="https://gdcrentals.com/the-metro-2/">The Metro — 34 S Lexington Ave</a></td><td class="area" data-label="Area">White Plains</td></tr>
+          <tr class="link-row"><td class="price" data-label="Rent">$3,202</td><td data-label="Size">1 BR · 830 sf</td><td class="titlecell"><a class="addr-link" href="https://www.postmarkapts.com/floorplans">Postmark — 301 Commons Park S</a></td><td class="area" data-label="Area">Stamford</td></tr>
+          <tr class="link-row"><td class="price" data-label="Rent">$3,332</td><td data-label="Size">1 BR · 800 sf</td><td class="titlecell"><a class="addr-link" href="https://www.one.clintonpark.com/floor-plans/">One Clinton Park — 55 Clinton Pl</a></td><td class="area" data-label="Area">New Rochelle</td></tr>
+          <tr class="link-row"><td class="price" data-label="Rent">$3,369</td><td data-label="Size">2 BR · 930 sf</td><td class="titlecell"><a class="addr-link" href="https://www.one.clintonpark.com/floor-plans/">One Clinton Park — 55 Clinton Pl</a></td><td class="area" data-label="Area">New Rochelle</td></tr>
+          <tr class="link-row"><td class="price" data-label="Rent">$3,445</td><td data-label="Size">1 BR · 800 sf</td><td class="titlecell"><a class="addr-link" href="https://www.rentcafe.com/apartments/ct/stamford/vela-on-the-park-0/default.aspx">Vela on the Park — 1011 Washington Blvd</a></td><td class="area" data-label="Area">Stamford</td></tr>
+          <tr class="link-row"><td class="price" data-label="Rent">$3,474</td><td data-label="Size">2 BR · 816 sf</td><td class="titlecell"><a class="addr-link" href="https://www.liveportandmain.com/floorplans">Port &amp; Main — 1 N Main St</a></td><td class="area" data-label="Area">Port Chester</td></tr>
+          <tr class="link-row"><td class="price" data-label="Rent">$3,495</td><td data-label="Size">2 BR · 863 sf</td><td class="titlecell"><a class="addr-link" href="https://gdcrentals.com/river-tides/">River Tides — 1133 Warburton Ave</a></td><td class="area" data-label="Area">Yonkers</td></tr>
+          <tr class="link-row"><td class="price" data-label="Rent">$3,500</td><td data-label="Size">2 BR · 1,070 sf</td><td class="titlecell"><a class="addr-link" href="https://www.rentcafe.com/apartments/ny/new-rochelle/360-huguenot0/default.aspx">360 Huguenot — 360 Huguenot St</a></td><td class="area" data-label="Area">New Rochelle</td></tr>
+          <tr class="link-row"><td class="price" data-label="Rent">$3,534</td><td data-label="Size">2 BR · 961 sf</td><td class="titlecell"><a class="addr-link" href="https://www.rentcafe.com/apartments/ct/stamford/vela-on-the-park-0/default.aspx">Vela on the Park — 1011 Washington Blvd</a></td><td class="area" data-label="Area">Stamford</td></tr>
+          <tr class="link-row"><td class="price" data-label="Rent">$3,553</td><td data-label="Size">2 BR · 1,096 sf</td><td class="titlecell"><a class="addr-link" href="https://www.rentcafe.com/apartments/ny/new-rochelle/360-huguenot0/default.aspx">360 Huguenot — 360 Huguenot St</a></td><td class="area" data-label="Area">New Rochelle</td></tr>
+          <tr class="link-row"><td class="price" data-label="Rent">$3,588</td><td data-label="Size">2 BR · 942 sf</td><td class="titlecell"><a class="addr-link" href="https://www.one.clintonpark.com/floor-plans/">One Clinton Park — 55 Clinton Pl</a></td><td class="area" data-label="Area">New Rochelle</td></tr>
+          <tr class="link-row"><td class="price" data-label="Rent">$3,595</td><td data-label="Size">2 BR · 987 sf</td><td class="titlecell"><a class="addr-link" href="https://www.rentcafe.com/apartments/ct/stamford/vela-on-the-park-0/default.aspx">Vela on the Park — 1011 Washington Blvd</a></td><td class="area" data-label="Area">Stamford</td></tr>
+          <tr class="link-row"><td class="price" data-label="Rent">$3,650</td><td data-label="Size">2 BR · 861 sf</td><td class="titlecell"><a class="addr-link" href="https://www.liveportandmain.com/floorplans">Port &amp; Main — 1 N Main St</a></td><td class="area" data-label="Area">Port Chester</td></tr>
+          <tr class="link-row"><td class="price" data-label="Rent">$3,690</td><td data-label="Size">2 BR · 1,072 sf</td><td class="titlecell"><a class="addr-link" href="https://www.rentcafe.com/apartments/ct/stamford/vela-on-the-park-0/default.aspx">Vela on the Park — 1011 Washington Blvd</a></td><td class="area" data-label="Area">Stamford</td></tr>
+          <tr class="link-row"><td class="price" data-label="Rent">$3,760</td><td data-label="Size">2 BR · 1,154 sf</td><td class="titlecell"><a class="addr-link" href="https://www.rentcafe.com/apartments/ct/stamford/vela-on-the-park-0/default.aspx">Vela on the Park — 1011 Washington Blvd</a></td><td class="area" data-label="Area">Stamford</td></tr>
+          <tr class="link-row"><td class="price" data-label="Rent">$3,762</td><td data-label="Size">2 BR · 998 sf</td><td class="titlecell"><a class="addr-link" href="https://www.one.clintonpark.com/floor-plans/">One Clinton Park — 55 Clinton Pl</a></td><td class="area" data-label="Area">New Rochelle</td></tr>
+          <tr class="link-row"><td class="price" data-label="Rent">$3,804</td><td data-label="Size">2 BR · 1,072 sf</td><td class="titlecell"><a class="addr-link" href="https://www.one.clintonpark.com/floor-plans/">One Clinton Park — 55 Clinton Pl</a></td><td class="area" data-label="Area">New Rochelle</td></tr>
+          <tr class="link-row"><td class="price" data-label="Rent">$3,917</td><td data-label="Size">2 BR · 1,121 sf</td><td class="titlecell"><a class="addr-link" href="https://www.one.clintonpark.com/floor-plans/">One Clinton Park — 55 Clinton Pl</a></td><td class="area" data-label="Area">New Rochelle</td></tr>
+          <tr class="link-row"><td class="price" data-label="Rent">$3,925</td><td data-label="Size">1 BR · 998 sf</td><td class="titlecell"><a class="addr-link" href="https://www.rentcafe.com/apartments/ct/stamford/vela-on-the-park-0/default.aspx">Vela on the Park — 1011 Washington Blvd</a></td><td class="area" data-label="Area">Stamford</td></tr>
+          <tr class="link-row"><td class="price" data-label="Rent">$3,995</td><td data-label="Size">2 BR · 1,071 sf</td><td class="titlecell"><a class="addr-link" href="https://gdcrentals.com/the-metro-2/">The Metro — 34 S Lexington Ave</a></td><td class="area" data-label="Area">White Plains</td></tr>
+        </table>
+      </div>
+      <p class="datenote">River Tides also has 1-BRs up to 898 sf (call for rent); The Metro and One Clinton Park both list additional qualifying units — check the links for the full current set.</p>
+    </section>
+
+    <section>
+      <div class="sec-h"><h2>More elevator buildings — check live availability</h2></div>
+      <p class="sec-sub">All mid/high-rise (elevator) with 1–2 BR units that regularly fall in the 800+ sf, under-$4,000 range. Open each for current pricing.</p>
+      <div class="card flush">
+        <table class="tbl">
+          <tr class="hrow"><th>Building</th><th>Area</th><th>Notes</th></tr>
+          <tr class="link-row"><td class="titlecell"><a class="addr-link" href="https://www.onecityplaceny.com/">One City Place</a></td><td class="area" data-label="Area">White Plains</td><td class="stt" data-label="Notes">1 City Place · studio–3BR, rooftop, elevator</td></tr>
+          <tr class="link-row"><td class="titlecell"><a class="addr-link" href="https://www.the-huguenot.com/">The Huguenot</a></td><td class="area" data-label="Area">New Rochelle</td><td class="stt" data-label="Notes">downtown high-rise rentals</td></tr>
+          <tr class="link-row"><td class="titlecell"><a class="addr-link" href="https://www.sawyerplaceny.com/">Sawyer Place</a></td><td class="area" data-label="Area">Yonkers</td><td class="stt" data-label="Notes">50 Nepperhan St · up to 2 mo free</td></tr>
+          <tr class="link-row"><td class="titlecell"><a class="addr-link" href="https://www.infinityharborpoint.com/">Infinity Harbor Point</a></td><td class="area" data-label="Area">Stamford</td><td class="stt" data-label="Notes">201 Commons Park S · waterfront tower, from ~$2,500</td></tr>
+          <tr class="link-row"><td class="titlecell"><a class="addr-link" href="https://www.as.atlanticstationstamford.com/">Atlantic Station</a></td><td class="area" data-label="Area">Stamford</td><td class="stt" data-label="Notes">355 Atlantic St · up to 1 mo free</td></tr>
+          <tr class="link-row"><td class="titlecell"><a class="addr-link" href="https://www.ironworkssono.com/">Iron Works Sono</a></td><td class="area" data-label="Area">Norwalk</td><td class="stt" data-label="Notes">1 N Water St · studio–2BR, 562–1,111 sf</td></tr>
+          <tr class="link-row"><td class="titlecell"><a class="addr-link" href="https://theabendroth.com/floorplans/">The Abendroth</a></td><td class="area" data-label="Area">Port Chester</td><td class="stt" data-label="Notes">169 N Main St · up to 2 mo free</td></tr>
+          <tr class="link-row"><td class="titlecell"><a class="addr-link" href="https://www.point2homes.com/US/Apartment-Buildings/NY/Port-Chester/The-Mariner1.html">The Mariner</a></td><td class="area" data-label="Area">Port Chester</td><td class="stt" data-label="Notes">21 Willett Ave · elevator building</td></tr>
+        </table>
+      </div>
+    </section>
+
+  </div>
+
+  <!-- ================= VOUCHER APARTMENTS ================= -->
+  <div id="voucherapts" class="panel">
+
+    <div class="stats">
+      <div class="stat"><div class="n g">27</div><div class="l">Listed apartments (≤ $4k)</div></div>
+      <div class="stat"><div class="n">8</div><div class="l">Buildings that take vouchers</div></div>
+      <div class="stat"><div class="n">7</div><div class="l">Towns covered</div></div>
+    </div>
+
+    <section style="margin-top:0">
+      <div class="card flush">
+        <table class="tbl">
+          <tr class="hrow"><th>Rent</th><th>Beds</th><th>Address — opens the listing</th><th>Town</th></tr>
+          <tr class="link-row"><td class="price" data-label="Rent">$1,500</td><td data-label="Beds">1 BR</td><td class="titlecell"><a class="addr-link" href="https://www.affordablehousing.com/yonkers-ny/53-morris-st-70263/">53 Morris St</a></td><td class="area" data-label="Town">Yonkers</td></tr>
+          <tr class="link-row"><td class="price" data-label="Rent">$1,599</td><td data-label="Beds">1 BR</td><td class="titlecell"><a class="addr-link" href="https://www.affordablehousing.com/mount-vernon-ny/21-n-high-st-521188/">21 N High St</a></td><td class="area" data-label="Town">Mount Vernon</td></tr>
+          <tr class="link-row"><td class="price" data-label="Rent">$1,800</td><td data-label="Beds">Studio</td><td class="titlecell"><a class="addr-link" href="https://www.affordablehousing.com/mount-vernon-ny/114-s-6th-ave-1037534/">114 S 6th Ave</a></td><td class="area" data-label="Town">Mount Vernon</td></tr>
+          <tr class="link-row"><td class="price" data-label="Rent">$1,912</td><td data-label="Beds">1 BR · senior</td><td class="titlecell"><a class="addr-link" href="https://www.affordablehousing.com/peekskill-ny/peekskill-plaza-senior-apartments-1000644/">Peekskill Plaza — 901 Main St</a></td><td class="area" data-label="Town">Peekskill</td></tr>
+          <tr class="link-row"><td class="price" data-label="Rent">$1,950</td><td data-label="Beds">3 BR</td><td class="titlecell"><a class="addr-link" href="https://www.affordablehousing.com/yonkers-ny/19-riverview-pl-67385/">19 Riverview Pl</a></td><td class="area" data-label="Town">Yonkers</td></tr>
+          <tr class="link-row"><td class="price" data-label="Rent">$2,100</td><td data-label="Beds">1 BR</td><td class="titlecell"><a class="addr-link" href="https://www.affordablehousing.com/mount-vernon-ny/630-s-4th-ave-967387/">630 S 4th Ave</a></td><td class="area" data-label="Town">Mount Vernon</td></tr>
+          <tr class="link-row"><td class="price" data-label="Rent">$2,200</td><td data-label="Beds">1 BR</td><td class="titlecell"><a class="addr-link" href="https://www.affordablehousing.com/new-rochelle-ny/30-allard-ave-191109/">30 Allard Ave</a></td><td class="area" data-label="Town">New Rochelle</td></tr>
+          <tr class="link-row"><td class="price" data-label="Rent">$2,250</td><td data-label="Beds">2 BR</td><td class="titlecell"><a class="addr-link" href="https://www.affordablehousing.com/ossining-ny/22-croton-ave-1027957/">22 Upper Croton Ave</a></td><td class="area" data-label="Town">Ossining</td></tr>
+          <tr class="link-row"><td class="price" data-label="Rent">$2,250</td><td data-label="Beds">2 BR</td><td class="titlecell"><a class="addr-link" href="https://www.affordablehousing.com/ossining-ny/22-croton-ave-1019078/">22 Croton Ave</a></td><td class="area" data-label="Town">Ossining</td></tr>
+          <tr class="link-row"><td class="price" data-label="Rent">$2,300</td><td data-label="Beds">2 BR</td><td class="titlecell"><a class="addr-link" href="https://www.affordablehousing.com/mount-vernon-ny/352-s-10th-ave-1035681/">352 S 10th Ave</a></td><td class="area" data-label="Town">Mount Vernon</td></tr>
+          <tr class="link-row"><td class="price" data-label="Rent">$2,350</td><td data-label="Beds">1 BR</td><td class="titlecell"><a class="addr-link" href="https://www.affordablehousing.com/new-rochelle-ny/40-3rd-st-966476/">40 3rd St</a></td><td class="area" data-label="Town">New Rochelle</td></tr>
+          <tr class="link-row"><td class="price" data-label="Rent">$2,400</td><td data-label="Beds">2 BR</td><td class="titlecell"><a class="addr-link" href="https://www.affordablehousing.com/yonkers-ny/164-waverly-st-1051677/">164 Waverly St</a></td><td class="area" data-label="Town">Yonkers</td></tr>
+          <tr class="link-row"><td class="price" data-label="Rent">$2,400</td><td data-label="Beds">2 BR</td><td class="titlecell"><a class="addr-link" href="https://www.affordablehousing.com/mount-vernon-ny/105-n-high-st-1037529/">105 N High St</a></td><td class="area" data-label="Town">Mount Vernon</td></tr>
+          <tr class="link-row"><td class="price" data-label="Rent">$2,475</td><td data-label="Beds">1 BR</td><td class="titlecell"><a class="addr-link" href="https://www.affordablehousing.com/ossining-ny/10-water-st-802180/">10 Water St</a></td><td class="area" data-label="Town">Ossining</td></tr>
+          <tr class="link-row"><td class="price" data-label="Rent">$2,550</td><td data-label="Beds">2 BR</td><td class="titlecell"><a class="addr-link" href="https://www.affordablehousing.com/peekskill-ny/1230-park-st-782849/">1230 Park St</a></td><td class="area" data-label="Town">Peekskill</td></tr>
+          <tr class="link-row"><td class="price" data-label="Rent">$2,600</td><td data-label="Beds">1 BR</td><td class="titlecell"><a class="addr-link" href="https://www.affordablehousing.com/yonkers-ny/40-caryl-ave-1026864/">40 Caryl Ave</a></td><td class="area" data-label="Town">Yonkers</td></tr>
+          <tr class="link-row"><td class="price" data-label="Rent">$2,600</td><td data-label="Beds">2 BR</td><td class="titlecell"><a class="addr-link" href="https://www.affordablehousing.com/new-rochelle-ny/88-horton-ave-836999/">88 Horton Ave</a></td><td class="area" data-label="Town">New Rochelle</td></tr>
+          <tr class="link-row"><td class="price" data-label="Rent">$2,700</td><td data-label="Beds">2 BR</td><td class="titlecell"><a class="addr-link" href="https://www.affordablehousing.com/ossining-ny/22-croton-ave-1019079/">22 Croton Ave (Unit 2)</a></td><td class="area" data-label="Town">Ossining</td></tr>
+          <tr class="link-row"><td class="price" data-label="Rent">$2,800</td><td data-label="Beds">4 BR</td><td class="titlecell"><a class="addr-link" href="https://www.affordablehousing.com/yonkers-ny/135-hawthorne-ave-27544/">135 Hawthorne Ave</a></td><td class="area" data-label="Town">Yonkers</td></tr>
+          <tr class="link-row"><td class="price" data-label="Rent">$2,900</td><td data-label="Beds">2 BR</td><td class="titlecell"><a class="addr-link" href="https://www.affordablehousing.com/new-rochelle-ny/leo-and-laura-llc-1034320/">46 Park Pl</a></td><td class="area" data-label="Town">New Rochelle</td></tr>
+          <tr class="link-row"><td class="price" data-label="Rent">$3,000</td><td data-label="Beds">6 BR</td><td class="titlecell"><a class="addr-link" href="https://www.affordablehousing.com/yonkers-ny/12-vineyard-ave-60412/">12 Vineyard Ave</a></td><td class="area" data-label="Town">Yonkers</td></tr>
+          <tr class="link-row"><td class="price" data-label="Rent">$3,100</td><td data-label="Beds">3 BR</td><td class="titlecell"><a class="addr-link" href="https://www.affordablehousing.com/mount-vernon-ny/114-s-6th-ave-967394/">114 S 6th Ave</a></td><td class="area" data-label="Town">Mount Vernon</td></tr>
+          <tr class="link-row"><td class="price" data-label="Rent">$3,100</td><td data-label="Beds">3 BR</td><td class="titlecell"><a class="addr-link" href="https://www.affordablehousing.com/new-rochelle-ny/120-washington-ave-617641/">120 Washington Ave</a></td><td class="area" data-label="Town">New Rochelle</td></tr>
+          <tr class="link-row"><td class="price" data-label="Rent">$3,200</td><td data-label="Beds">2 BR · 900 sf</td><td class="titlecell"><a class="addr-link" href="https://www.affordablehousing.com/yorktown-heights-ny/385-kear-st-800954/">385 Kear St</a></td><td class="area" data-label="Town">Yorktown Heights</td></tr>
+          <tr class="link-row"><td class="price" data-label="Rent">$3,300</td><td data-label="Beds">3 BR</td><td class="titlecell"><a class="addr-link" href="https://www.affordablehousing.com/new-rochelle-ny/22-clove-rd-697464/">22 Clove Rd #3</a></td><td class="area" data-label="Town">New Rochelle</td></tr>
+          <tr class="link-row"><td class="price" data-label="Rent">$3,488</td><td data-label="Beds">3 BR</td><td class="titlecell"><a class="addr-link" href="https://www.affordablehousing.com/yonkers-ny/64-hudson-st-1026480/">64 Hudson St</a></td><td class="area" data-label="Town">Yonkers</td></tr>
+          <tr class="link-row"><td class="price" data-label="Rent">$3,500</td><td data-label="Beds">3 BR</td><td class="titlecell"><a class="addr-link" href="https://www.affordablehousing.com/white-plains-ny/67-dobbs-ferry-rd-1027933/">67 Dobbs Ferry Rd</a></td><td class="area" data-label="Town">White Plains</td></tr>
+        </table>
+      </div>
+    </section>
+
+    <section>
+      <div class="sec-h"><h2>Peekskill buildings that welcome vouchers — apply directly</h2></div>
+      <p class="sec-sub">Income-based / affordable complexes in Peekskill that accept vouchers. Most report a short waitlist — apply at the building or through the directory link below.</p>
+      <div class="card flush">
+        <table class="tbl">
+          <tr class="hrow"><th>Building</th><th>Town</th><th>Details</th></tr>
+          <tr class="link-row"><td class="titlecell">The Lofts on Main — 922 Main St</td><td class="area" data-label="Town">Peekskill</td><td class="stt" data-label="Details">1–2 BR · $922–$1,661 · accepts vouchers · short waitlist</td></tr>
+          <tr class="link-row"><td class="titlecell">Drum Hill Senior Flats — 1847 Crompond Rd</td><td class="area" data-label="Town">Peekskill</td><td class="stt" data-label="Details">1–2 BR · $1,115–$1,616 · senior · accepts vouchers</td></tr>
+          <tr class="link-row"><td class="titlecell">Drum Hill Senior Living — 90 Ringgold St</td><td class="area" data-label="Town">Peekskill</td><td class="stt" data-label="Details">senior · income-based · accepts vouchers</td></tr>
+          <tr class="link-row"><td class="titlecell">645 Main Apartments — 645 Main St</td><td class="area" data-label="Town">Peekskill</td><td class="stt" data-label="Details">1–3 BR · $1,040–$2,883</td></tr>
+          <tr class="link-row"><td class="titlecell">River Pointe at Drum Hill — 100 Ringgold St</td><td class="area" data-label="Town">Peekskill</td><td class="stt" data-label="Details">senior · accessible · short waitlist</td></tr>
+          <tr class="link-row"><td class="titlecell">Wesley Hall — 801 South St</td><td class="area" data-label="Town">Peekskill</td><td class="stt" data-label="Details">studio–2 BR · short waitlist</td></tr>
+          <tr class="link-row"><td class="titlecell">Stuhr Gardens — 3 Wiberly Ave</td><td class="area" data-label="Town">Peekskill</td><td class="stt" data-label="Details">subsidized · accessible</td></tr>
+          <tr class="link-row"><td class="titlecell">Bohlmann Towers / Dunbar Heights — 1227 Howard St &amp; 807 Main St</td><td class="area" data-label="Town">Peekskill</td><td class="stt" data-label="Details">subsidized</td></tr>
+        </table>
+      </div>
+      <a class="btn" href="https://affordablehousingonline.com/housing-search/New-York/Peekskill">All Peekskill affordable buildings →</a>
+    </section>
+
+    <section>
+      <div class="card">
+        <div class="src">
+          <div class="row"><b>Browse voucher rentals by town</b><br><a href="https://www.affordablehousing.com/yonkers-ny/">Yonkers</a> · <a href="https://www.affordablehousing.com/mount-vernon-ny/">Mount Vernon</a> · <a href="https://www.affordablehousing.com/new-rochelle-ny/">New Rochelle</a> · <a href="https://www.affordablehousing.com/white-plains-ny/">White Plains</a> · <a href="https://www.affordablehousing.com/port-chester-ny/">Port Chester</a> · <a href="https://www.affordablehousing.com/peekskill-ny/">Peekskill</a> · <a href="https://www.affordablehousing.com/ossining-ny/">Ossining</a> · <a href="https://www.affordablehousing.com/yorktown-heights-ny/">Yorktown Heights</a> · <a href="https://www.affordablehousing.com/westchester-county-ny/">All Westchester</a></div>
+          <div class="row"><b>Any apartment (vouchers must be accepted) — Westchester County, ≤ $4,000</b><br><a href="https://newyork.craigslist.org/search/wch/apa?max_price=4000&sort=date">Craigslist apartments →</a> · <a href="https://homeseeker.westchestergov.com/Listings">Westchester HomeSeeker →</a></div>
+          <div class="row"><b>Peekskill Housing Authority</b><br>Runs the local Housing Choice Voucher program and manages several of the buildings above. <a href="https://www.affordablehousing.com/housing-authority-ny/peekskill-housing-authority-2957/">Authority page →</a></div>
+        </div>
+      </div>
+    </section>
+
+  </div>
+
+
+</div>
+
+</body>
+</html>
