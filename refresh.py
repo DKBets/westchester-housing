@@ -1,17 +1,7 @@
 #!/usr/bin/env python3
-"""
-Auto-refresh the Westchester Housing dashboard (index.html) in place.
-
-Runs on GitHub Actions (Mon/Wed/Fri). Design principles:
-  * NEVER wipe good data. If a source is blocked or returns too little,
-    the existing table for that section is left untouched.
-  * Preserve every phone/email already collected in the current index.html.
-  * Only rewrite a section when the scrape clearly succeeded (sanity floor).
-The workflow commits index.html only if this script actually changed it.
-"""
+"""Auto-refresh the Westchester Housing dashboard (index.html) in place."""
 import html as htmllib
 import re
-import sys
 from datetime import date, datetime
 
 import requests
@@ -27,7 +17,6 @@ HEADERS = {
     "Connection": "close",
 }
 
-# sanity floors — below these we assume the source blocked us and keep old data
 ROOMS_MIN = 8
 VOUCHER_MIN = 10
 ROOMS_MAX = 40
@@ -52,21 +41,17 @@ def id_of(url):
     return url.rstrip("/").split("/")[-1].replace(".html", "")
 
 
-# ---------------------------------------------------------------- splice utils
 def splice_table(html, header, body, search_from=0):
-    """Replace the rows of the table whose header row == `header`."""
     h = html.index(header, search_from) + len(header)
     close = html.index("</table>", h)
     return html[:h] + "\n" + body + "\n        " + html[close:]
 
 
-# ------------------------------------------------------------------ ROOMS tab
 ROOMS_HEADER = ('<tr class="hrow"><th>#</th><th>Posted</th><th>Rent</th>'
                 '<th>Room — opens the posting</th><th>Area</th><th>Contact</th></tr>')
 
 
 def existing_room_contacts(html):
-    """Map craigslist post-id -> the existing <td> contact cell (verbatim)."""
     start = html.index(ROOMS_HEADER)
     end = html.index("</table>", start)
     block = html[start:end]
@@ -99,14 +84,13 @@ def scrape_rooms():
         le = li.select_one(".location")
         price = money(pe.get_text()) if pe else None
         loc = le.get_text(strip=True) if le else ""
-        if not price or price < 400 or price > 1200:   # scam / range filter
+        if not price or price < 400 or price > 1200:
             continue
         seen.add(pid)
         rooms.append({"url": url, "id": pid, "title": title,
                       "price": price, "loc": loc.title() if loc else ""})
         if len(rooms) >= ROOMS_MAX:
             break
-    # best-effort exact post dates (bounded, resilient)
     for r in rooms:
         try:
             page = get(r["url"], timeout=20)
@@ -119,7 +103,6 @@ def scrape_rooms():
 
 def rooms_body(rooms, contacts):
     today = date.today()
-    # keep craigslist's newest-first order; put known dates first, undated after
     dated = [r for r in rooms if r["date"]]
     undated = [r for r in rooms if not r["date"]]
     dated.sort(key=lambda r: r["date"], reverse=True)
@@ -143,7 +126,6 @@ def rooms_body(rooms, contacts):
     return "\n".join(lines)
 
 
-# -------------------------------------------------------- VOUCHER APARTMENTS tab
 VOUCHER_HEADER = ('<tr class="hrow"><th>Rent</th><th>Beds</th>'
                   '<th>Address — opens the listing</th><th>Town</th></tr>')
 AH_TOWNS = ["westchester-county-ny", "yonkers-ny", "mount-vernon-ny",
@@ -163,7 +145,7 @@ def scrape_voucher():
             href = a["href"]
             if "/" + town + "/" not in href and "affordablehousing.com/" not in href:
                 continue
-            if not re.search(r"-\d{4,}/?$", href):     # detail pages end in an id
+            if not re.search(r"-\d{4,}/?$", href):
                 continue
             block = a.get_text(" ", strip=True)
             pm = re.search(r"\$([\d,]{3,6})", block)
@@ -200,20 +182,15 @@ def voucher_body(rows):
     return "\n".join(lines)
 
 
-# ----------------------------------------------------------------------- main
 def main():
     html = open(INDEX, encoding="utf-8").read()
     original = html
     notes = []
 
-    # Rooms
     try:
         contacts = existing_room_contacts(html)
         rooms = scrape_rooms()
         matched = sum(1 for r in rooms if r["id"] in contacts)
-        # Guard: if we have collected contacts but none of the scraped listings
-        # match them, the id scheme likely differs — keep the old table rather
-        # than risk erasing hard-won phone/email data.
         if len(rooms) >= ROOMS_MIN and not (contacts and matched == 0):
             html = splice_table(html, ROOMS_HEADER, rooms_body(rooms, contacts))
             notes.append(f"rooms={len(rooms)} (contacts kept={matched})")
@@ -222,19 +199,22 @@ def main():
     except Exception as e:
         notes.append(f"rooms kept (error: {e})")
 
-    # Voucher apartments (scoped to the voucherapts panel)
     try:
-        vstart = html.index('id="voucherapts"')
         vrows = scrape_voucher()
         if len(vrows) >= VOUCHER_MIN:
-            html = splice_table(html, VOUCHER_HEADER, voucher_body(vrows), vstart)
-            notes.append(f"voucher={len(vrows)}")
+            body = voucher_body(vrows)
+            vstart = html.index('id="voucherapts"')
+            html = splice_table(html, VOUCHER_HEADER, body, vstart)
+            html = splice_table(html, VOUCHER_HEADER, body, 0)
+            stamp = date.today().strftime("%b %-d")
+            html = re.sub(r"\(AffordableHousing\.com, [A-Za-z]+ \d+\)",
+                          f"(AffordableHousing.com, {stamp})", html, count=1)
+            notes.append(f"voucher+section8={len(vrows)}")
         else:
             notes.append(f"voucher kept (only {len(vrows)} found)")
     except Exception as e:
         notes.append(f"voucher kept (error: {e})")
 
-    # bump the visible "Rooms refreshed" date only if something actually changed
     if html != original:
         stamp = date.today().strftime("%b %-d")
         html = re.sub(r"Rooms refreshed [A-Za-z]+ \d+",
