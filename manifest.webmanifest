@@ -1,0 +1,15 @@
+{
+  "name": "Westchester Housing Finder",
+  "short_name": "Housing",
+  "description": "Live Westchester + Lower Fairfield housing: Section 8 vouchers, rooms under $1,200, apartments, and voucher apartments under $4,000.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#0d1117",
+  "theme_color": "#0d1117",
+  "icons": [
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ]
+}
