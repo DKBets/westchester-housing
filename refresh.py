@@ -21,6 +21,15 @@ ROOMS_MIN = 8
 VOUCHER_MIN = 10
 ROOMS_MAX = 40
 
+# Block adult / solicitation / non-housing posts by title.
+BLOCK = re.compile(
+    r"consenting adult|playroom|clothing optional|nudist|naturist|sensual|"
+    r"massage|escort|sugar\s*(baby|daddy|mama)|with benefits|\bnsa\b|"
+    r"discreet|companionship|kink|fetish|open[-\s]?minded|no strings|"
+    r"cuddle|intimate|adult fun|play\s*room|full service|happy ending",
+    re.I,
+)
+
 
 def get(url, timeout=30):
     r = requests.get(url, headers=HEADERS, timeout=timeout)
@@ -80,6 +89,8 @@ def scrape_rooms():
         if not title:
             t = li.select_one(".title")
             title = t.get_text(strip=True) if t else "Room for rent"
+        if BLOCK.search(title):          # drop adult / solicitation posts
+            continue
         pe = li.select_one(".price")
         le = li.select_one(".location")
         price = money(pe.get_text()) if pe else None
