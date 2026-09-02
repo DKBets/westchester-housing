@@ -21,7 +21,7 @@ ROOMS_MIN = 8
 VOUCHER_MIN = 10
 ROOMS_MAX = 40
 
-# Block adult / solicitation / non-housing posts by title.
+# Block adult / solicitation / non-housing posts (checked on title AND body).
 BLOCK = re.compile(
     r"consenting adult|playroom|clothing optional|nudist|naturist|sensual|"
     r"massage|escort|sugar\s*(baby|daddy|mama)|with benefits|\bnsa\b|"
@@ -29,6 +29,7 @@ BLOCK = re.compile(
     r"cuddle|intimate|adult fun|play\s*room|full service|happy ending",
     re.I,
 )
+PHONE_RE = re.compile(r"\(?(\d{3})\)?[\s.\-]?(\d{3})[\s.\-]?(\d{4})")
 
 
 def get(url, timeout=30):
@@ -89,7 +90,7 @@ def scrape_rooms():
         if not title:
             t = li.select_one(".title")
             title = t.get_text(strip=True) if t else "Room for rent"
-        if BLOCK.search(title):          # drop adult / solicitation posts
+        if BLOCK.search(title):          # drop adult / solicitation posts (title)
             continue
         pe = li.select_one(".price")
         le = li.select_one(".location")
@@ -102,14 +103,38 @@ def scrape_rooms():
                       "price": price, "loc": loc.title() if loc else ""})
         if len(rooms) >= ROOMS_MAX:
             break
+    # best-effort: exact post date + a phone if the poster put one in the body.
+    # (Reads only publicly-posted body text — never Craigslist's gated reply reveal.)
+    kept = []
     for r in rooms:
+        r["phone"] = None
         try:
             page = get(r["url"], timeout=20)
             m = re.search(r'datetime="(\d{4}-\d{2}-\d{2})', page)
             r["date"] = datetime.strptime(m.group(1), "%Y-%m-%d").date() if m else None
+            body_el = BeautifulSoup(page, "html.parser").select_one("#postingbody")
+            body_text = body_el.get_text(" ", strip=True) if body_el else ""
+            if body_text and BLOCK.search(body_text):
+                continue                       # adult/solicitation in body -> drop
+            pm = PHONE_RE.search(body_text)
+            if pm:
+                r["phone"] = f"({pm.group(1)}) {pm.group(2)}-{pm.group(3)}"
         except Exception:
             r["date"] = None
-    return rooms
+        kept.append(r)
+    return kept
+
+
+def contact_cell(r, contacts):
+    """Prefer a previously-collected contact; else a phone found in the body."""
+    stored = contacts.get(r["id"])
+    if stored:
+        return stored
+    if r.get("phone"):
+        digits = re.sub(r"\D", "", r["phone"])
+        return (f'<td class="phone" data-label="Contact">'
+                f'<a class="tel" href="tel:+1{digits}">{r["phone"]}</a></td>')
+    return '<td class="nophone" data-label="Contact">—</td>'
 
 
 def rooms_body(rooms, contacts):
@@ -127,7 +152,7 @@ def rooms_body(rooms, contacts):
                         if fresh else label)
         else:
             datecell = '<span style="color:var(--green);font-weight:700">new</span>'
-        contact = contacts.get(r["id"], '<td class="nophone" data-label="Contact">—</td>')
+        contact = contact_cell(r, contacts)
         lines.append(
             f'          <tr class="link-row"><td class="numcell" data-label="">{i}</td>'
             f'<td class="srccell" data-label="Posted">{datecell}</td>'
@@ -230,11 +255,3 @@ def main():
         stamp = date.today().strftime("%b %-d")
         html = re.sub(r"Rooms refreshed [A-Za-z]+ \d+",
                       f"Rooms refreshed {stamp}", html, count=1)
-        open(INDEX, "w", encoding="utf-8").write(html)
-        print("CHANGED:", "; ".join(notes))
-    else:
-        print("NO CHANGE:", "; ".join(notes))
-
-
-if __name__ == "__main__":
-    main()
